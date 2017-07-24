@@ -1,10 +1,11 @@
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
+const ayarlar = require('./ayarlar.json');
 
 const client = new Discord.Client({ fetchAllMembers: false, apiRequestMethod: 'sequential' });
 
 
-client.login("acayip gizli tokenimiz").then(() => console.log('giirş yapıldı')).catch(console.error);
+client.login(ayarlar.token).then(() => console.log('giirş yapıldı')).catch(console.error);
 
 const connections = new Map();
 
