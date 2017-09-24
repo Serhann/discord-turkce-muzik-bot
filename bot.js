@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
 const ayarlar = require('./ayarlar.json');
 const client = new Discord.Client({ fetchAllMembers: false, apiRequestMethod: 'sequential' });
-client.login(ayarlar.token).then(() => console.log(client.user.tag ' ismi ile giriş yapıldı.'))
+client.login(ayarlar.token).then(() => console.log(client.user.tag + ' (' + client.user.id + ') ismi ile giriş yapıldı.'))
 const connections = new Map();
 let broadcast;
 
