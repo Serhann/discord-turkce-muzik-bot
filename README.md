@@ -1,7 +1,7 @@
 # discord-turkce-muzik-bot
 Github'da yayınlanan tek ve ilk Türkçe, Discord müzik botu
 
-#Kurulum
+<h1>Kurulum</h1>
 1. Kurulum için gereken programlar:
 
   1) Node.JS
