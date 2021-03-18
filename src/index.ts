@@ -1,4 +1,5 @@
-import { Client, Guild, GuildMember, StreamDispatcher, VoiceConnection } from 'discord.js';
+import { Client, Guild, GuildMember, Message, StreamDispatcher, VoiceConnection } from 'discord.js';
+import { getInfo } from 'ytdl-core';
 import { settings } from './config.json';
 
 const client = new Client();
@@ -10,6 +11,7 @@ enum PlayerStatus {
 }
 
 type Song = {
+    title: string,
     url: string,
     requestedBy: GuildMember
 }
@@ -61,76 +63,63 @@ client.on('message', async msg => {
                     if (player) {
                         await addQueue(msg.guild, msg.member, args[1]);
 
-                        const dispatcher = connection.play(ytdl(player?.queue[0].url));
-
-                        player.dispatcher = dispatcher;
-
                         msg.reply('Çalınıyor.');
 
-                        dispatcher.on('finish', () => {
-                            player.queue.shift();
-
-                            if (player.queue.length > 0) {
-                                const dispatcher = connection.play(ytdl(player?.queue[0].url));
-
-                                player.dispatcher = dispatcher;
-
-                                msg.reply('Bir sonraki şarkı çalınıyor.');
-                            } else {
-                                players = players.filter(player => player.guildId !== msg.guild?.id);
-
-                                player.connection.voice?.channel?.leave();
-
-                                msg.reply('Kuyruk tamamlandı. Ayrıldım.');
-                            }
-                        })
+                        await play(player, msg);
                     } else return msg.reply('Bir hata oluştu!');
                 } else return msg.reply('Herhangi bir ses kanalına bağlı olduğunu göremiyorum.');    
             }
 
             break;
 
-            case 'dur':
-                if (player) {
-                    if (player.voiceId === msg.member.voice.id) {
-                        if (player.queue[0].requestedBy === msg.member || msg.member.hasPermission("ADMINISTRATOR")) {
-                            if (player.status === PlayerStatus.PAUSED) return msg.reply('Zaten durdurulmuş!');
+        case 'dur':
+            if (player) {
+                if (player.voiceId === msg.member.voice.channel?.id) {
+                    if (player.queue[0].requestedBy === msg.member || msg.member.hasPermission("ADMINISTRATOR")) {
+                        if (player.status === PlayerStatus.PAUSED) return msg.reply('Zaten durdurulmuş!');
+                        msg.reply('Durdurdum!');
+                        player.dispatcher?.pause();
+                        player.status = PlayerStatus.PAUSED;
+                    } else return msg.reply('Şu an çalan şarkıyı sadece `'+player.queue[0].requestedBy.user.tag+'` ya da yetkili birisi durdurabilir.');
+                } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
+            } else return msg.reply('Henüz şarkı çalmıyorum..');
 
-                            msg.reply('Durdurdum!');
-                            player.dispatcher?.pause();
-                            player.status = PlayerStatus.PAUSED;
-                        } else return msg.reply('Şu an çalan şarkıyı sadece `'+player.queue[0].requestedBy.nickname+'` ya da yetkili birisi durdurabilir.');
-                    } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
-                } else return msg.reply('Henüz şarkı çalmıyorum..');
-    
-                break;
+            break;
 
-            case 'devam':
-                if (player) {
-                    if (player.voiceId === msg.member.voice.id) {
-                        if (player.queue[0].requestedBy === msg.member || msg.member.hasPermission("ADMINISTRATOR")) {
-                            if (player.status === PlayerStatus.PLAYING) return msg.reply('Zaten devam ediyor!');
+        case 'devam':
+            if (player) {
+                if (player.voiceId === msg.member.voice.channel?.id) {
+                    if (player.queue[0].requestedBy === msg.member || msg.member.hasPermission("ADMINISTRATOR")) {
+                        if (player.status === PlayerStatus.PLAYING) return msg.reply('Zaten devam ediyor!');
+                        msg.reply('Devam ediyor!');
+                        player.dispatcher?.resume();
+                        player.status = PlayerStatus.PLAYING;
+                    } else return msg.reply('Şu an çalan şarkıyı sadece `'+player.queue[0].requestedBy.user.tag+'` ya da yetkili birisi başlatabilir.');
+                } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
+            } else return msg.reply('Henüz şarkı çalmıyorum..');
 
-                            msg.reply('Devam ediyor!');
-                            player.dispatcher?.resume();
-                            player.status = PlayerStatus.PLAYING;
-                        } else return msg.reply('Şu an çalan şarkıyı sadece `'+player.queue[0].requestedBy.nickname+'` ya da yetkili birisi başlatabilir.');
-                    } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
-                } else return msg.reply('Henüz şarkı çalmıyorum..');
-    
-                break;
+            break;
 
-            case 'geç':
-                if (player) {
-                    if (player.voiceId === msg.member.voice.id) {
-                        if (player.queue[0].requestedBy === msg.member || msg.member.hasPermission("ADMINISTRATOR")) {
-                            msg.reply('Geçtim!');
-                            player.dispatcher?.end();
-                        } else return msg.reply('Şu an çalan şarkıyı sadece `'+player.queue[0].requestedBy.nickname+'` ya da yetkili birisi geçebilir.');
-                    } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
-                } else return msg.reply('Henüz şarkı çalmıyorum..');
-    
-                break;
+        case 'geç':
+            if (player) {
+                if (player.voiceId === msg.member.voice.channel?.id) {
+                    if (player.queue[0].requestedBy === msg.member || msg.member.hasPermission("ADMINISTRATOR")) {
+                        msg.reply('Geçtim!');
+                        player.dispatcher?.end();
+                    } else return msg.reply('Şu an çalan şarkıyı sadece `'+player.queue[0].requestedBy.user.tag+'` ya da yetkili birisi geçebilir.');
+                } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
+            } else return msg.reply('Henüz şarkı çalmıyorum..');
+
+            break;
+
+        case 'çalınan':
+            if (player) {
+                if (player.voiceId === msg.member.voice.channel?.id) {
+                    msg.channel.send('**Şu an çalınan:** ' + player.queue[0].title + ' (' + player.queue[0].requestedBy.user.tag + ')');
+                } else return msg.reply('Şarkı çaldığım kanalda değilsin!');
+            } else return msg.reply('Henüz şarkı çalmıyorum..');
+
+            break;
     
         default:
             break;
@@ -141,8 +130,28 @@ async function addQueue(guild: Guild, requestedBy: GuildMember, url: string) {
     const guildPlayer = players.find(player => player.guildId === guild.id);
     if (!guildPlayer) throw new Error('Bu sunucunun bir kuyruğu yok!');
 
-    guildPlayer.queue.push({ url, requestedBy });
+    const title = (await getInfo(url)).videoDetails.title;
+
+    guildPlayer.queue.push({ title, url, requestedBy });
     return true;
+}
+
+async function play(player: GuildPlayer, msg: Message) {
+    if (player.queue.length > 0) {
+        msg.channel.send(player.queue[0].requestedBy.user.tag + ' tarafından **' + player.queue[0].title + '** oynatılıyor.');
+
+        player.dispatcher = player.connection.play(ytdl(player?.queue[0].url))
+        .on('finish', async () => {
+            player.queue.shift();
+
+            await play(player, msg);
+        })
+    } else {
+        player.connection.voice?.channel?.leave();
+        msg.channel.send('Kuyruk tamamlandı. Ayrıldım.');
+
+        players = players.filter(player => player.guildId !== msg.guild?.id);
+    }
 }
 
 client.login(settings.token);
