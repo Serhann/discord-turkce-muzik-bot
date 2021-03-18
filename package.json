@@ -7,7 +7,7 @@
     "test": "yarn build && yarn start",
     "build": "tsc",
     "watch": "tsc -w",
-    "start": "yarn build && node dist/index.js"
+    "start": "yarn build && node build/index.js"
   },
   "repository": {
     "type": "git",
