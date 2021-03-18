@@ -1,8 +1,8 @@
 # Config
 config.json
 
-# Dist
-dist
+# Build
+build
 
 # Logs
 logs
