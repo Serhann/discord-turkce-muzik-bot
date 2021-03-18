@@ -1,10 +1,6 @@
 import { Client } from 'discord.js';
 import { getInfo } from 'ytdl-core';
-
-const settings = {
-    token: '',
-    prefix: '!'
-};
+import { settings } from './config.json';
 
 const client = new Client();
 

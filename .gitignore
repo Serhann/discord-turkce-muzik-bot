@@ -1,5 +1,8 @@
-# Ayarlar
-ayarlar.json
+# Config
+config.json
+
+# Dist
+dist
 
 # Logs
 logs
