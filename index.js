@@ -13,7 +13,11 @@ client.on('ready', () => {
 });
 
 client.on('message', async msg => {
-    if (!msg.content.startsWith(settings.prefix)) return;
+    if (!msg.content.startsWith(settings.prefix) || !msg.guild) return;
+
+    const args = msg.content.split(" ");
+
+    console.log(args);
 });
 
 client.login(settings.token);
