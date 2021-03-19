@@ -52,7 +52,7 @@ client.on('message', async msg => {
 
                     players.push({
                         guildId: msg.guild.id,
-                        voiceId: msg.member.voice.id,
+                        voiceId: msg.member.voice.channel.id,
                         connection,
                         status: PlayerStatus.PLAYING,
                         queue: []
